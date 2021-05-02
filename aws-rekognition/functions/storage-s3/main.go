@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/aws-project-rekognition-captcha/shared/apigateway"
 	"github.com/aws/aws-lambda-go/events"
@@ -65,8 +64,6 @@ func GetString(varName string, defaultValue string) string {
 
 type Request struct {
 	*events.APIGatewayProxyRequest
-	startingTime time.Time
-	err          error
 }
 
 type Storage struct {
@@ -117,7 +114,7 @@ func getFormat(encodedBase64 string) (string, string) {
 
 func apiGatewayHandler(ctx context.Context, request *Request) (*apigateway.Response, error) {
 	queryParams, err := url.ParseQuery(request.Body)
-	fmt.Printf("Body %s", request.Body)
+	fmt.Printf("Body %s\n", request.Body)
 	if err != nil {
 		return apigateway.NewErrorResponse(apigateway.ErrInvalidRequest), nil
 	}
@@ -126,22 +123,22 @@ func apiGatewayHandler(ctx context.Context, request *Request) (*apigateway.Respo
 
 	storage.image = queryParams.Get("image")
 	storage.name = queryParams.Get("name")
-	fmt.Printf("image %s", storage.image)
-	fmt.Printf("name %s", storage.name)
 
 	format, contentType := getFormat(storage.image)
-	fmt.Printf("format %s", format)
-	fmt.Printf("content type %s", contentType)
+	fmt.Printf("format %s\n", format)
+	fmt.Printf("content type %s\n", contentType)
 
 	path := storage.name + format
 
 	decodedImage, err := base64.StdEncoding.DecodeString(storage.image)
 	if err != nil {
+		fmt.Printf("decode image error %s\n", err.Error())
 		return apigateway.NewErrorResponse(err), nil
 	}
 
 	err = uploadObject(ctx, bucket, path, contentType, decodedImage, nil)
 	if err != nil {
+		fmt.Printf("upload object error %s\n", err.Error())
 		return apigateway.NewErrorResponse(err), nil
 	}
 
