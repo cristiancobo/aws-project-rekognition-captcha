@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/aws-project-rekognition-captcha/shared/apigateway"
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -34,10 +33,6 @@ func GetString(varName string, defaultValue string) string {
 	return val
 }
 
-type Request struct {
-	*events.APIGatewayProxyRequest
-}
-
 type Response struct {
 	Image string `json:"Image"`
 	Name  string `json:"Name"`
@@ -54,13 +49,13 @@ func randomImage(ctx context.Context) (string, string, error) {
 
 	random := rand.Intn(1040)
 
-	name := fmt.Sprintf(" %v.png", random)
+	name := fmt.Sprintf("%v.png", random)
 
 	fmt.Printf("key %s\n", name)
 
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String("/random/" + name),
+		Key:    aws.String("/" + name),
 	}
 
 	output, err := Client.GetObjectWithContext(ctx, input)
