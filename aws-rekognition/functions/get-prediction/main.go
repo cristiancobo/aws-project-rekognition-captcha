@@ -36,7 +36,8 @@ type Request struct {
 }
 
 type Response struct {
-	TextPredict string `json:"text_predict"`
+	TextPredictWord string `json:"text_predict_word"`
+	TextPredictLine string `json:"text_predict_line"`
 }
 
 func init() {
@@ -46,7 +47,7 @@ func init() {
 	Client = client
 }
 
-func detectText(bucket, pathName string) (string, error) {
+func detectText(bucket, pathName string) (string, string, error) {
 	input := &rekognition.DetectTextInput{
 		Image: &rekognition.Image{
 			S3Object: &rekognition.S3Object{
@@ -58,21 +59,29 @@ func detectText(bucket, pathName string) (string, error) {
 
 	output, err := Client.DetectText(input)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	var detectText string
+	var detectTextLine, detectTextWord string
 
 	for _, text := range output.TextDetections {
-		detectText += *text.DetectedText
+
+		if *text.Type == rekognition.TextTypesWord {
+			detectTextWord += *text.DetectedText
+		}
+
+		if *text.Type == rekognition.TextTypesLine {
+			detectTextLine += *text.DetectedText
+		}
+
 	}
 
-	return detectText, nil
+	return detectTextWord, detectTextLine, nil
 }
 
 func apiGatewayHandler(ctx context.Context, request *Request) (*apigateway.Response, error) {
 	pathName := request.QueryStringParameters["name"]
-	detectText, err := detectText(bucket, pathName)
+	detectTextWord, detectTextLine, err := detectText(bucket, pathName)
 	fmt.Printf("path %s\n", pathName)
 	if err != nil {
 		fmt.Printf("error to predict text %s\n", err.Error())
@@ -80,7 +89,8 @@ func apiGatewayHandler(ctx context.Context, request *Request) (*apigateway.Respo
 	}
 
 	Response := Response{
-		TextPredict: detectText,
+		TextPredictWord: detectTextWord,
+		TextPredictLine: detectTextLine,
 	}
 
 	return apigateway.NewJSONResponse(http.StatusOK, Response), nil
